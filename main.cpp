@@ -1,19 +1,27 @@
 #include <iostream>
 #include <vector>
+#include <sstream>
+#include <fstream>
 
 using namespace std;
 
 class Seat {
-    string seatNumber;
+    int seatNumber;
+    char seatLetter;
     bool isAvailable;
     int price;
 
 public:
-    Seat(const string &seatNumber, int price, bool isAvailable = true) : seatNumber(seatNumber),
-                                                                         price(price), isAvailable(isAvailable) {
+    Seat(int seatNumber, char seatLetter, int price,
+         bool isAvailable = true) : seatNumber(seatNumber), seatLetter(seatLetter),
+                                    price(price), isAvailable(isAvailable) {
     }
 
-    string getSeat() const {
+    char getRowLetter() const {
+        return this->seatLetter;
+    }
+
+    int getSeatNumber() const {
         return this->seatNumber;
     }
 
@@ -51,8 +59,8 @@ public:
         return this->passengerName;
     }
 
-    string getSeatNumber() const {
-        return this->seat.getSeat();
+    int getSeatNumber() const {
+        return this->seat.getSeatNumber();
     }
 
     string getFlightNumber() const {
@@ -66,12 +74,13 @@ public:
     int getTicketId() const {
         return this->ticketId;
     }
+
     void PrintTicketInfo() {
         cout << "Ticket info\n";
         cout << "Flight number: " << flightNumber << "\n";
         cout << "Date: " << date << "\n";
         cout << "Passenger name: " << passengerName << "\n";
-        cout << "Seat number: " << seat.getSeat() << "\n";
+        cout << "Seat number: " << seat.getSeatNumber() << "\n";
         cout << "Ticket ID: " << ticketId << endl;
     }
 };
@@ -84,8 +93,8 @@ class Airplane {
 
 public:
     Airplane(const string &date, const string &flightNumber, int seatsNum,
-             const vector<Seat> &availableSeat): date(date), flightNumber(flightNumber), seatsNum(seatsNum),
-                                                 availableSeat(availableSeat) {
+             const vector<Seat> &availableSeat) : date(date), flightNumber(flightNumber), seatsNum(seatsNum),
+                                                  availableSeat(availableSeat) {
     }
 
     string getDate() const {
@@ -100,11 +109,58 @@ public:
         return this->seatsNum;
     }
 
-    vector<Seat> getAvailableSeat() {
+    vector<Seat> getAvailableSeat() const {
         return this->availableSeat;
     }
 };
 
+class Parser {
+public:
+    vector<Airplane> parseData(const string &userFile) {
+        vector<Airplane> airplanes;
+        ifstream file(userFile);
+        string line;
+        if (!file.is_open()) {
+            cout << "An error occurred while opening the " << userFile << endl;
+            return airplanes;
+        }
+
+        while (getline(file, line)) {
+            istringstream iss(line);
+            string date, flightNumber;
+            int seatsPerRow;
+            iss >> date >> flightNumber >> seatsPerRow;
+            vector<Seat> availableSeat;
+            while (iss) {
+                int startRow, endRow, priceForRow;
+                char dollarSign;
+                if (iss >> startRow) {
+                    iss.ignore(1, '-');
+                    if (iss >> endRow >> priceForRow) {
+                        for (int row = startRow; row <= endRow; ++row) {
+                            for (int i = 0; i < seatsPerRow; ++i) {
+                                char seatLetter = 'A' + i;
+                                int seatNumber = (row - 1) * seatsPerRow + (i + 1);
+                                Seat seat(seatNumber, seatLetter, priceForRow, true);
+                                availableSeat.push_back(seat);
+                            }
+                        }
+                        iss >> dollarSign;
+                    }
+                }
+            }
+
+            Airplane airplane(date, flightNumber, seatsPerRow, availableSeat);
+            airplanes.push_back(airplane);
+        }
+
+        return airplanes;
+    }
+};
+
+class ParseInput {
+public:
+};
 
 int main() {
     return 0;
