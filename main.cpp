@@ -121,7 +121,7 @@ public:
         ifstream file(userFile);
         string line;
         if (!file.is_open()) {
-            cout << "An error occurred while opening the " << userFile << endl;
+            cout << "\033[31m" << "An error occurred while opening the " << userFile << "\033[31m" << endl;
             return airplanes;
         }
 
@@ -159,9 +159,134 @@ public:
 };
 
 class ParseInput {
+private:
+    bool continueApp = true;
+
+    bool isNumber(const string &userString) {
+        for (char c: userString) {
+            if (!isdigit(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void errorTooFewArguments(const string &command, const string &expectedArgs) {
+        cout << "\033[31m" << "Error: Too few arguments. Command '" << command << "' requires " << expectedArgs <<
+                "\033[0m" << endl;
+    }
+
+    void errorTooManyArguments(const string &command, const string &expectedArgs) {
+        cout << "\033[31m" << "Error: Too many arguments. Command '" << command << "' requires " << expectedArgs <<
+                "\033[0m" << endl;
+    }
+
+    void changeContinue() {
+        continueApp = false;
+    }
+
 public:
+    void InputReader() {
+        while (continueApp) {
+            string input;
+            cout << "Enter a command ('stop' to end program): ";
+            getline(cin, input);
+            string command;
+            istringstream iss(input);
+            iss >> command;
+
+            if (command == "stop") {
+                cout << "Thanks for using this program!" << endl;
+                changeContinue();
+            } else if (command == "check") {
+                string date, flightNumber;
+                if (!(iss >> date >> flightNumber)) {
+                    errorTooFewArguments(command, "2 arguments ('Date' and 'Flight Number')");
+                } else {
+                    string additionalArgument;
+                    if (!(iss >> additionalArgument)) {
+                        cout << "Command: " << command << "\nDate: " << date << "\nFlight Number: " << flightNumber <<
+                                endl;
+                    } else {
+                        errorTooManyArguments(command, "2 arguments ('Date' and 'Flight Number')");
+                    }
+                }
+            } else if (command == "book") {
+                string date, flightNumber, place, username;
+                if (!(iss >> date >> flightNumber >> place >> username)) {
+                    errorTooFewArguments(command, "4 arguments ('Date', 'Flight Number', 'Place' and 'Username')");
+                } else {
+                    string additionalArgument;
+                    if (!(iss >> additionalArgument)) {
+                        cout << "Command: " << command << "\nDate: " << date << "\nFlight Number: " << flightNumber
+                                << "\nPlace: " << place << "\nUsername: " << username << endl;
+                    } else {
+                        errorTooManyArguments(command, "4 arguments ('Date', 'Flight Number', 'Place' and 'Username')");
+                    }
+                }
+            } else if (command == "return") {
+                int id;
+                if (!(iss >> id)) {
+                    errorTooFewArguments(command, "1 argument ('Id')");
+                } else {
+                    string additionalArgument;
+                    if (!(iss >> additionalArgument)) {
+                        cout << "Command: " << command << "\nId: " << id << endl;
+                    } else {
+                        errorTooManyArguments(command, "1 argument ('Id')");
+                    }
+                }
+            } else if (command == "view") {
+                string param;
+                if (!(iss >> param)) {
+                    errorTooFewArguments(command, "1 argument ('username', 'flight', or 'ID')");
+                } else if (param == "username") {
+                    string username;
+                    if (!(iss >> username)) {
+                        errorTooFewArguments(command, "1 argument ('Username')");
+                    } else {
+                        string additionalArgument;
+                        if (!(iss >> additionalArgument)) {
+                            cout << "Command: " << command << "\nUsername: " << username << endl;
+                        } else {
+                            errorTooManyArguments(command, "1 argument ('Username')");
+                        }
+                    }
+                } else if (param == "flight") {
+                    string flight, date;
+                    if (!(iss >> flight >> date)) {
+                        errorTooFewArguments(command, "2 arguments ('Flight' and 'Date')");
+                    } else {
+                        string additionalArgument;
+                        if (!(iss >> additionalArgument)) {
+                            cout << "Command: " << command << "\nFlight: " << flight << "\nDate: " << date << endl;
+                        } else {
+                            errorTooManyArguments(command, "2 arguments ('Flight' and 'Date')");
+                        }
+                    }
+                } else if (isNumber(param)) {
+                    int id = stoi(param);
+                    string additionalArgument;
+                    if (!(iss >> additionalArgument)) {
+                        cout << "Command: " << command << "\nID: " << id << endl;
+                    } else {
+                        errorTooManyArguments(command, "1 argument ('ID')");
+                    }
+                } else {
+                    cout << "\033[31m" <<
+                            "Error: Invalid parameter for 'view' command. Expected 'username', 'flight', or an 'ID'." <<
+                            "\033[0m" << endl;
+                }
+            } else {
+                cout << "\033[31m" << "Unknown command: " << command << "\nTry again." << "\033[0m" << endl;
+            }
+        }
+    }
 };
 
 int main() {
+    string file = "/Users/macbook/Documents/Airflight-Booking-System/airplane_text.txt";
+    ParseInput parseInput;
+    parseInput.InputReader();
     return 0;
 }
