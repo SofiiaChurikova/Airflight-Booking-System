@@ -17,7 +17,7 @@ public:
                                     price(price), isAvailable(isAvailable) {
     }
 
-    char getRowLetter() const {
+    char getSeatLetter() const {
         return this->seatLetter;
     }
 
@@ -85,6 +85,28 @@ public:
     }
 };
 
+class Passenger {
+    string username;
+    vector<Ticket> tickets;
+
+public:
+    Passenger(const string &username) : username(username) {
+    }
+
+    string getUsername() const {
+        return this->username;
+    }
+
+    vector<Ticket> getTickets() const {
+        return this->tickets;
+    }
+
+    void addTicket(const Ticket &ticket) {
+        this->tickets.push_back(ticket);
+    }
+};
+
+
 class Airplane {
     string date;
     string flightNumber;
@@ -109,7 +131,7 @@ public:
         return this->seatsNum;
     }
 
-    vector<Seat> getAvailableSeat() const {
+    vector<Seat> &getAvailableSeat() {
         return this->availableSeat;
     }
 };
@@ -158,6 +180,78 @@ public:
     }
 };
 
+class CommandExecutor {
+    string file = "/Users/macbook/Documents/Airflight-Booking-System/airplane_text.txt";
+    Parser parseFile;
+    vector<Airplane> airplanes = parseFile.parseData(file);
+    vector<Ticket> tickets;
+    vector<Seat> seats;
+    vector<Passenger> passengers;
+
+public:
+    Airplane *FindFlight(const string &date, const string &flightNumber) {
+        for (auto &airplane: this->airplanes) {
+            if (airplane.getDate() == date && airplane.getFlightNumber() == flightNumber) {
+                return &airplane;
+            }
+        }
+        return nullptr;
+    }
+
+    void CheckSeats(const string &date, const string &flightNumber) {
+        Airplane *airplane = FindFlight(date, flightNumber);
+        if (airplane != nullptr) {
+            for (const auto &seat: airplane->getAvailableSeat()) {
+                if (seat.getAvailable()) {
+                    cout << seat.getSeatNumber() << seat.getSeatLetter() << " " << seat.getPrice() << "$\n";
+                }
+            }
+        } else {
+            cout << "\033[31m" << "We couldn't find the flight with the given date and number." << "\033[0m" << endl;
+        }
+    }
+
+    void BookSeat(const string &date, const string &flightNumber, const string &place, const string &username) {
+        Airplane *airplane = FindFlight(date, flightNumber);
+        if (airplane != nullptr) {
+            int seatNumber = stoi(place.substr(0, place.size() - 1));
+            char seatLetter = place.back();
+            for (Seat &seat: airplane->getAvailableSeat()) {
+                if (seat.getSeatNumber() == seatNumber && seat.getSeatLetter() == seatLetter) {
+                    if (!seat.getAvailable()) {
+                        cout << "\033[31m" << "The seat " << seatNumber << seatLetter << " is already booked." <<
+                                "\033[0m" << endl;
+                        return;
+                    }
+                    seat.seatNotAvailable();
+                    Ticket newTicket(username, seat, flightNumber, date, tickets.size() + 1);
+                    tickets.push_back(newTicket);
+                    bool passengerExists = false;
+                    for (auto &passenger: passengers) {
+                        if (passenger.getUsername() == username) {
+                            passenger.addTicket(newTicket);
+                            passengerExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!passengerExists) {
+                        Passenger newPassenger(username);
+                        newPassenger.addTicket(newTicket);
+                        passengers.push_back(newPassenger);
+                    }
+
+                    cout << "Confirmed with ID " << newTicket.getTicketId() << ".\n";
+                    return;
+                }
+            }
+        } else {
+            cout << "\033[31m" << "We couldn't find the flight with the given date and number." << "\033[0m" << endl;
+        }
+    }
+};
+
+
 class ParseInput {
 private:
     bool continueApp = true;
@@ -187,6 +281,7 @@ private:
 
 public:
     void InputReader() {
+        CommandExecutor commandExecutor;
         while (continueApp) {
             string input;
             cout << "Enter a command ('stop' to end program): ";
@@ -205,8 +300,7 @@ public:
                 } else {
                     string additionalArgument;
                     if (!(iss >> additionalArgument)) {
-                        cout << "Command: " << command << "\nDate: " << date << "\nFlight Number: " << flightNumber <<
-                                endl;
+                        commandExecutor.CheckSeats(date, flightNumber);
                     } else {
                         errorTooManyArguments(command, "2 arguments ('Date' and 'Flight Number')");
                     }
@@ -218,8 +312,7 @@ public:
                 } else {
                     string additionalArgument;
                     if (!(iss >> additionalArgument)) {
-                        cout << "Command: " << command << "\nDate: " << date << "\nFlight Number: " << flightNumber
-                                << "\nPlace: " << place << "\nUsername: " << username << endl;
+                        commandExecutor.BookSeat(date, flightNumber, place, username);
                     } else {
                         errorTooManyArguments(command, "4 arguments ('Date', 'Flight Number', 'Place' and 'Username')");
                     }
