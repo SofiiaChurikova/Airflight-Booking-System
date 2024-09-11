@@ -49,12 +49,11 @@ class Ticket {
     string date;
     int ticketId;
     int price;
-    bool isReturned;
 
 public:
     Ticket(const string &passengerName, const Seat &seat, const string &flightNumber, const string &date,
            int ticketId, int price) : passengerName(passengerName), seat(seat), flightNumber(flightNumber),
-                                      date(date), ticketId(ticketId), price(price), isReturned(false) {
+                                      date(date), ticketId(ticketId), price(price) {
     }
 
     string getPassengerName() const {
@@ -92,14 +91,6 @@ public:
         cout << "Seat number: " << seat.getSeatNumber() << seat.getSeatLetter() << "\n";
         cout << "Price: " << seat.getPrice() << "$" << "\n";
         cout << "Passenger name: " << passengerName << "\n";
-    }
-
-    void markAsReturned() {
-        isReturned = true;
-    }
-
-    bool hasBeenReturned() const {
-        return isReturned;
     }
 };
 
@@ -218,7 +209,7 @@ class CommandExecutor {
     vector<Ticket> tickets;
     vector<Seat> seats;
     vector<Passenger> passengers;
-    int nextTicketId = 1;
+    int ticketId = 1;
 
 public:
     Airplane *FindFlight(const string &date, const string &flightNumber) {
@@ -258,9 +249,9 @@ public:
                         return;
                     }
                     seat.seatNotAvailable();
-                    Ticket newTicket(username, seat, flightNumber, date, nextTicketId, seat.getPrice());
+                    Ticket newTicket(username, seat, flightNumber, date, ticketId, seat.getPrice());
                     tickets.push_back(newTicket);
-                    nextTicketId++;
+                    ticketId++;
                     bool passengerExists = false;
                     for (auto &passenger: passengers) {
                         if (passenger.getUsername() == username) {
@@ -289,7 +280,7 @@ public:
         }
     }
 
-    bool ReturnSeat(const int &id) {
+    void ReturnSeat(const int &id) {
         Ticket *ticketToReturn = nullptr;
         for (auto &ticket: this->tickets) {
             if (ticket.getTicketId() == id) {
@@ -299,15 +290,13 @@ public:
         }
         if (!ticketToReturn) {
             cout << "\033[31m" << "Ticket ID " << id << " not found." << "\033[0m" << endl;
-            return false;
+            return;
         }
 
         for (auto &airplane: this->airplanes) {
-            if (airplane.getDate() == ticketToReturn->getDate() && airplane.getFlightNumber() == ticketToReturn->
-                getFlightNumber()) {
+            if (airplane.getDate() == ticketToReturn->getDate() && airplane.getFlightNumber() == ticketToReturn->getFlightNumber()) {
                 for (auto &seat: airplane.getAvailableSeat()) {
-                    if (seat.getSeatNumber() == ticketToReturn->getSeatNumber() && seat.getSeatLetter() ==
-                        ticketToReturn->getSeatLetter()) {
+                    if (seat.getSeatNumber() == ticketToReturn->getSeatNumber() && seat.getSeatLetter() == ticketToReturn->getSeatLetter()) {
                         for (auto &passenger: this->passengers) {
                             if (passenger.getUsername() == ticketToReturn->getPassengerName()) {
                                 seat.seatAvailable();
@@ -318,15 +307,15 @@ public:
                                         break;
                                     }
                                 }
-                                return true;
+                                return;
                             }
                         }
                     }
                 }
             }
         }
-        return false;
     }
+
 
     void ViewByID(const int &id) {
         bool found = false;
