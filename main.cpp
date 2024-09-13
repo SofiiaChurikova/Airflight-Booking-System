@@ -2,8 +2,32 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdexcept>
 
 using namespace std;
+
+class RAII {
+    ifstream fileStream;
+
+public:
+    RAII(const string &filePath) {
+        fileStream.open(filePath);
+        if (!fileStream.is_open()) {
+            throw runtime_error("An error occurred while opening the file");
+        }
+    }
+
+    ~RAII() {
+        if (fileStream.is_open()) {
+            fileStream.close();
+        }
+    }
+    ifstream &getStream() {
+        return fileStream;
+    }
+};
 
 class Seat {
     int seatNumber;
@@ -162,14 +186,9 @@ class DataParser {
 public:
     vector<Airplane> parseData(const string &userFile) {
         vector<Airplane> airplanes;
-        ifstream file(userFile);
+        RAII file(userFile);
         string line;
-        if (!file.is_open()) {
-            cout << "\033[31m" << "An error occurred while opening the " << userFile << "\033[0m" << endl;
-            return airplanes;
-        }
-
-        while (getline(file, line)) {
+        while (getline(file.getStream(), line)) {
             istringstream iss(line);
             string date, flightNumber;
             int seatsPerRow;
@@ -202,8 +221,20 @@ public:
     }
 };
 
+class Config {
+public:
+    string filePath = "/Users/macbook/Documents/Airflight-Booking-System/airplane_text.txt";
+};
+
+
 class CommandExecutor {
-    string file = "/Users/macbook/Documents/Airflight-Booking-System/airplane_text.txt";
+public:
+    string file;
+
+    CommandExecutor(const Config &config) : file(config.filePath) {
+        airplanes = parseFile.parseData(file);
+    }
+
     DataParser parseFile;
     vector<Airplane> airplanes = parseFile.parseData(file);
     vector<Ticket> tickets;
@@ -294,9 +325,11 @@ public:
         }
 
         for (auto &airplane: this->airplanes) {
-            if (airplane.getDate() == ticketToReturn->getDate() && airplane.getFlightNumber() == ticketToReturn->getFlightNumber()) {
+            if (airplane.getDate() == ticketToReturn->getDate() && airplane.getFlightNumber() == ticketToReturn->
+                getFlightNumber()) {
                 for (auto &seat: airplane.getAvailableSeat()) {
-                    if (seat.getSeatNumber() == ticketToReturn->getSeatNumber() && seat.getSeatLetter() == ticketToReturn->getSeatLetter()) {
+                    if (seat.getSeatNumber() == ticketToReturn->getSeatNumber() && seat.getSeatLetter() ==
+                        ticketToReturn->getSeatLetter()) {
                         for (auto &passenger: this->passengers) {
                             if (passenger.getUsername() == ticketToReturn->getPassengerName()) {
                                 seat.seatAvailable();
@@ -363,7 +396,8 @@ public:
             }
         }
         if (!found) {
-            cout << "\033[31m" << "No tickets found for flight " << flight << " on date " << date << "\033[0m" << endl;
+            cout << "\033[31m" << "No booked tickets found for flight " << flight << " on date " << date << "\033[0m" <<
+                    endl;
         }
     }
 };
@@ -371,6 +405,7 @@ public:
 class ParseInput {
 private:
     bool continueApp = true;
+    CommandExecutor commandExecutor;
 
     bool isNumber(const string &userString) {
         for (char c: userString) {
@@ -396,8 +431,10 @@ private:
     }
 
 public:
+    ParseInput(const Config &config) : commandExecutor(config) {
+    }
+
     void InputReader() {
-        CommandExecutor commandExecutor;
         while (continueApp) {
             string input;
             cout << "Enter a command ('stop' to end program): ";
@@ -494,7 +531,8 @@ public:
 };
 
 int main() {
-    ParseInput parseInput;
+    Config config;
+    ParseInput parseInput(config);
     parseInput.InputReader();
     return 0;
 }
