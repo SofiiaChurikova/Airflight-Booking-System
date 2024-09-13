@@ -394,21 +394,26 @@ public:
     }
 
     void ViewByFlight(const string &flight, const string &date) {
-        bool found = false;
+        bool flightExists = false;
+        bool ticketsFound = false;
         for (const auto &airplane: airplanes) {
             if (airplane.getFlightNumber() == flight && airplane.getDate() == date) {
+                flightExists = true;
                 for (const auto &ticket: tickets) {
                     if (ticket.getFlightNumber() == flight && ticket.getDate() == date) {
                         cout << ticket.getSeatNumber() << ticket.getSeatLetter() << " " << ticket.getPassengerName() <<
                                 " " << ticket.getPrice() << "$" << endl;
-                        found = true;
+                        ticketsFound = true;
                     }
                 }
+                if (!ticketsFound) {
+                    cout << "\033[31m" << "No booked tickets found for flight " << flight << " on date " << date << "\033[0m" << endl;
+                }
+                return;
             }
         }
-        if (!found) {
-            cout << "\033[31m" << "No booked tickets found for flight " << flight << " on date " << date << "\033[0m" <<
-                    endl;
+        if (!flightExists) {
+            cout << "\033[31m" << "The flight with number " << flight << " on date " << date << " does not exist." << "\033[0m" << endl;
         }
     }
 };
