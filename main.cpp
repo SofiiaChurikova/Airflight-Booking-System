@@ -9,23 +9,37 @@
 using namespace std;
 
 class RAII {
-    ifstream fileStream;
+    int fileDescriptor;
+    const size_t bufferSize = 1024;
+    char buffer[1024];
 
 public:
     RAII(const string &filePath) {
-        fileStream.open(filePath);
-        if (!fileStream.is_open()) {
-            throw runtime_error("An error occurred while opening the file");
+        fileDescriptor = open(filePath.c_str(), O_RDONLY);
+        if (fileDescriptor == -1) {
+            throw runtime_error("Error opening file");
         }
     }
 
     ~RAII() {
-        if (fileStream.is_open()) {
-            fileStream.close();
+        if (fileDescriptor != -1) {
+            close(fileDescriptor);
         }
     }
-    ifstream &getStream() {
-        return fileStream;
+
+    string readFile() {
+        string fileContent;
+        ssize_t bytesRead;
+
+        while ((bytesRead = read(fileDescriptor, buffer, bufferSize)) > 0) {
+            fileContent.append(buffer, bytesRead);
+        }
+
+        if (bytesRead == -1) {
+            throw runtime_error("Error reading file");
+        }
+
+        return fileContent;
     }
 };
 
@@ -154,13 +168,12 @@ public:
 class Airplane {
     string date;
     string flightNumber;
-    int seatsNum;
     vector<Seat> availableSeat;
 
 public:
-    Airplane(const string &date, const string &flightNumber, int seatsNum,
+    Airplane(const string &date, const string &flightNumber,
              const vector<Seat> &availableSeat)
-        : date(date), flightNumber(flightNumber), seatsNum(seatsNum),
+        : date(date), flightNumber(flightNumber),
           availableSeat(availableSeat) {
     }
 
@@ -170,10 +183,6 @@ public:
 
     string getFlightNumber() const {
         return this->flightNumber;
-    }
-
-    int getSeatsNum() const {
-        return this->seatsNum;
     }
 
     vector<Seat> &getAvailableSeat() {
@@ -187,8 +196,10 @@ public:
     vector<Airplane> parseData(const string &userFile) {
         vector<Airplane> airplanes;
         RAII file(userFile);
+        string fileContent = file.readFile();
+        istringstream fileStream(fileContent);
         string line;
-        while (getline(file.getStream(), line)) {
+        while (getline(fileStream, line)) {
             istringstream iss(line);
             string date, flightNumber;
             int seatsPerRow;
@@ -213,7 +224,7 @@ public:
                 }
             }
 
-            Airplane airplane(date, flightNumber, seatsPerRow, availableSeat);
+            Airplane airplane(date, flightNumber, availableSeat);
             airplanes.push_back(airplane);
         }
 
